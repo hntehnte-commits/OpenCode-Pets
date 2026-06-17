@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="port" content="{{port}}">
+  <meta http-equiv="Content-Security-Policy"
+        content="default-src 'none'; style-src 'unsafe-inline'; script-src 'nonce-{{nonce}}'; connect-src http://localhost:{{port}};">
+  <style>
+{{THEME_CSS}}
+  </style>
+</head>
+<body>
+  <div id="app">
+    <header>
+      <span class="title">✦ OpenCode Pets</span>
+      <span class="agent-count" id="agentCount">0 agents</span>
+    </header>
+    <div id="pet-grid"></div>
+    <footer id="status-bar">
+      <span id="eventDetail">Waiting for events...</span>
+    </footer>
+  </div>
+
+  <script nonce="{{nonce}}">
+{{PALETTE_JS}}
+  </script>
+  <script nonce="{{nonce}}">
+{{SPRITES_JS}}
+  </script>
+  <script nonce="{{nonce}}">
+{{STATE_JS}}
+  </script>
+  <script nonce="{{nonce}}">
+{{RENDERER_JS}}
+  </script>
+  <script nonce="{{nonce}}">
+{{MAIN_JS}}
+  </script>
+</body>
+</html>

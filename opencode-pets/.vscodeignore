@@ -1,0 +1,10 @@
+.vscode/**
+.vscode-test/**
+src/**/*.ts
+src/**/*.js
+!src/panel/html/**
+tsconfig.json
+.gitignore
+node_modules/
+spec.md
+documentation/

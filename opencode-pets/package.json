@@ -1,0 +1,69 @@
+{
+  "name": "opencode-pets",
+  "displayName": "OpenCode Pets",
+  "description": "Pixel-art agent dashboard for opencode sessions — shows agent activity as animated pixel characters",
+  "version": "2.0.0",
+  "publisher": "opencode-community",
+  "license": "MIT",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Visualization",
+    "Other"
+  ],
+  "activationEvents": [
+    "onCommand:opencode-pets.showPanel"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "opencode-pets.showPanel",
+        "title": "OpenCode Pets: Show Agent Dashboard"
+      },
+      {
+        "command": "opencode-pets.selectSession",
+        "title": "OpenCode Pets: Select OpenCode Session"
+      }
+    ],
+    "configuration": {
+      "title": "OpenCode Pets",
+      "properties": {
+        "opencodePets.serverPort": {
+          "type": "number",
+          "default": 3001,
+          "description": "Port for the embedded event server (receives POST /event from opencode plugin)"
+        },
+        "opencodePets.pixelScale": {
+          "type": "number",
+          "default": 8,
+          "minimum": 4,
+          "maximum": 24,
+          "description": "Pixel size for sprite rendering (affects agent canvas size)"
+        },
+        "opencodePets.showLabels": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show agent name and state labels below each character"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "tsc -p ./",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "package": "vsce package"
+  },
+  "devDependencies": {
+    "@types/node": "^25.9.3",
+    "@types/vscode": "^1.85.0",
+    "@vscode/vsce": "^2.22.0",
+    "typescript": "^5.3.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/opencode-ai/opencode-dashboard-extension"
+  }
+}

@@ -1,0 +1,171 @@
+/* OpenCode Pets — Theme styles using VSCode CSS variables */
+
+:root {
+  --bg-primary: var(--vscode-sideBar-background, #1e1e1e);
+  --bg-secondary: var(--vscode-editor-background, #252526);
+  --text-primary: var(--vscode-editor-foreground, #cccccc);
+  --text-secondary: var(--vscode-descriptionForeground, #888888);
+  --border-color: var(--vscode-panel-border, #333333);
+  --card-bg: var(--vscode-editor-inactiveSelectionBackground, #3a3d41);
+  --pixel-scale: 8;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  overflow-x: hidden;
+}
+
+#app {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+/* ─── Header ─── */
+
+header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border-color);
+  background: var(--bg-secondary);
+  user-select: none;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.title {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.agent-count {
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+.session-indicator {
+  font-size: 11px;
+  color: var(--text-secondary);
+  padding: 2px 8px;
+  border-radius: 4px;
+  border: 1px solid var(--border-color);
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.session-indicator:hover {
+  background: var(--card-bg);
+}
+
+/* ─── Agent Grid ─── */
+
+#pet-grid {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 16px;
+  padding: 16px;
+  flex: 1;
+}
+
+.agent-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 12px;
+  border-radius: 8px;
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  min-width: 120px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+}
+
+.agent-cell canvas {
+  display: block;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+  border-radius: 4px;
+}
+
+.agent-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-primary);
+  text-align: center;
+  white-space: nowrap;
+}
+
+/* ─── State Labels (colored pill badges) ─── */
+
+.state-label {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 99px;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #ffffff;
+  min-width: 40px;
+  text-align: center;
+}
+
+.state-label.idle     { background: #888888; }
+.state-label.happy    { background: #4AE0A0; }
+.state-label.error    { background: #E86060; }
+.state-label.thinking { background: #D4A030; }
+.state-label.write    { background: #4A6FA5; }
+.state-label.read     { background: #40C0D0; }
+.state-label.bash     { background: #E8A040; }
+
+/* ─── Responsive: narrow panels ─── */
+
+@media (max-width: 480px) {
+  #pet-grid {
+    gap: 8px;
+    padding: 8px;
+  }
+  .agent-cell {
+    min-width: 100px;
+    padding: 8px;
+  }
+  .agent-cell canvas {
+    width: 72px;
+    height: 84px;
+  }
+  .agent-label {
+    font-size: 10px;
+  }
+}
+
+@media (min-width: 481px) and (max-width: 720px) {
+  .agent-cell {
+    min-width: 110px;
+    padding: 10px;
+  }
+}
+
+/* ─── Footer / Status Bar ─── */
+
+footer {
+  padding: 8px 16px;
+  border-top: 1px solid var(--border-color);
+  background: var(--bg-secondary);
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+#eventDetail {
+  opacity: 0.8;
+}
