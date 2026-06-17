@@ -7,6 +7,7 @@
  *  - Port discovery: reads ~/.opencode/dashboard.json or scans ports 3001-3010
  *  - Session identity: generates UUID v4 session_id, included in all events
  *  - Retry with exponential backoff on connection failure
+ *  - Context tracking: detects which sub-agent is active by parsing `task` args
  */
 
 // ── Session identity (UUID v4, generated once per plugin load) ──
@@ -134,7 +135,72 @@ async function send(type, data) {
   // All retries exhausted — silently drop event
 }
 
+// ── Context tracking ──
+// Tracks which sub-agent is currently active.
+// The orchestrator calls sub-agents via `task`; we detect the agent from the args
+// and attribute subsequent tool events to it.
+let _currentAgent = null
+
+/**
+ * Extract the sub-agent ID from task arguments.
+ * opencode task calls typically reference agents in one of these formats:
+ *   - { agent: "ssd-planner", prompt: "..." }  (structured)
+ *   - "@ssd-planner do X"                        (inline mention)
+ *   - { prompt: "@ssd-planner do X" }            (prompt with mention)
+ * @param {any} args - The output.args from task tool.execute.before
+ * @returns {string|null} Detected agent ID, or null
+ */
+function extractAgentFromTaskArgs(args) {
+  if (!args) return null
+
+  // Case 1: args is an object with explicit agent field
+  if (typeof args === 'object' && args.agent) {
+    let agentId = args.agent
+    // Strip any namespace prefix (e.g., ssd/ssd-planner → ssd-planner)
+    if (agentId.includes('/')) {
+      agentId = agentId.split('/').pop()
+    }
+    return agentId
+  }
+
+  // Case 2: args is an object with agent as first array element
+  if (Array.isArray(args) && args.length > 0 && typeof args[0] === 'string') {
+    const candidate = args[0].replace(/^@/, '').split('/').pop()
+    if (isValidAgentId(candidate)) return candidate
+  }
+
+  // Case 3: stringify and look for @agent-name pattern
+  let text = ''
+  if (typeof args === 'string') {
+    text = args
+  } else if (typeof args === 'object') {
+    text = args.name || args.prompt || JSON.stringify(args)
+  }
+
+  const agentMatch = text.match(/@([a-zA-Z][a-zA-Z0-9_\/-]+)/)
+  if (agentMatch) {
+    // Strip any namespace prefix (e.g., ssd/ssd-planner → ssd-planner)
+    return agentMatch[1].replace(/^[^/]+\//, '')
+  }
+
+  return null
+}
+
+/** Known agent IDs for validation */
+const KNOWN_AGENTS = [
+  'explore', 'general',
+  'ssd-planner', 'ssd-spec-writer', 'ssd-implementer',
+  'ssd-tester', 'ssd-reviewer', 'ssd-docs-writer',
+  'ssd-validator', 'ssd-orchestrator',
+]
+
+function isValidAgentId(id) {
+  return KNOWN_AGENTS.includes(id)
+}
+
 // ── Tool-to-agent mapping ──
+// Used as fallback when context tracking doesn't know which agent is active.
+// Each tool maps to the most likely agent that uses it.
 const TOOL_AGENT_MAP = {
   read: 'explore',
   write: 'ssd-implementer',
@@ -147,13 +213,39 @@ const TOOL_AGENT_MAP = {
   skill: 'ssd-orchestrator',
 }
 
+/**
+ * Resolve the agent ID for a tool event.
+ * Priority: 1) context-tracked agent  2) TOOL_AGENT_MAP  3) 'general'
+ * @param {string} tool - The tool name
+ * @returns {string} Resolved agent ID
+ */
+function resolveAgent(tool) {
+  return _currentAgent || TOOL_AGENT_MAP[tool] || 'general'
+}
+
 // ── Plugin Export ──
 export const DashboardPlugin = async () => {
   send('plugin.loaded', { agent: 'ssd-orchestrator', terminal: TERMINAL_LABEL })
 
   return {
     'tool.execute.before': async (input, output) => {
-      const agent = output.agent || TOOL_AGENT_MAP[input.tool] || 'general'
+      // When orchestrator delegates to a sub-agent via task, detect which one
+      if (input.tool === 'task') {
+        const detected = extractAgentFromTaskArgs(output.args)
+        if (detected) {
+          _currentAgent = detected
+          // Immediately send a session.thinking to show the sub-agent as active
+          send('session', {
+            type: 'session.thinking',
+            agent: detected,
+          })
+        }
+        // Debug: log what we detected (visible in VSCode debug console or terminal)
+        console.log('[Pets Plugin] task called, args:', JSON.stringify(output.args), 'detected agent:', detected, 'session:', SESSION_ID)
+      }
+
+      // Also listen for session.thinking in event handler — it may set _currentAgent
+      const agent = resolveAgent(input.tool)
       send('tool.start', {
         agent,
         tool: input.tool,
@@ -162,16 +254,34 @@ export const DashboardPlugin = async () => {
       })
     },
     'tool.execute.after': async (input, result) => {
-      const agent = result.agent || TOOL_AGENT_MAP[input.tool] || 'general'
+      const agent = resolveAgent(input.tool)
       send('tool.end', {
         agent,
         tool: input.tool,
       })
+
+      // When task finishes, send idle for the sub-agent and clear tracking
+      if (input.tool === 'task') {
+        if (_currentAgent) {
+          send('session', {
+            type: 'session.idle',
+            agent: _currentAgent,
+          })
+        }
+        _currentAgent = null
+      }
     },
     event: async ({ event }) => {
       // Forward session lifecycle events to the dashboard
       if (['session.created', 'session.thinking', 'session.idle', 'session.error'].includes(event.type)) {
         const agent = event.agent || 'ssd-orchestrator'
+
+        // If runtime tells us which agent is thinking, track it
+        if (event.agent && event.type === 'session.thinking') {
+          _currentAgent = event.agent
+          console.log('[Pets Plugin] session.thinking for agent:', event.agent)
+        }
+
         send('session', { type: event.type, agent })
       }
     },

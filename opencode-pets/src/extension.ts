@@ -9,6 +9,7 @@ let eventServer: EventServer
 
 /**
  * Copy the opencode plugin to ~/.opencode/plugins/ so opencode can load it.
+ * Only copies if the destination does NOT already exist (preserves manual updates).
  */
 async function copyPluginToUserDir(extensionPath: string): Promise<void> {
   const src = path.join(extensionPath, '.opencode', 'plugins', 'dashboard.js')
@@ -17,6 +18,14 @@ async function copyPluginToUserDir(extensionPath: string): Promise<void> {
 
   try {
     await fs.promises.mkdir(dstDir, { recursive: true })
+    // Only copy if destination doesn't exist (user may have manually updated it)
+    try {
+      await fs.promises.access(dst, fs.constants.F_OK)
+      console.log('[OpenCode Pets] Plugin already exists at', dst, '— skipping copy')
+      return
+    } catch {
+      // File doesn't exist, safe to copy
+    }
     await fs.promises.copyFile(src, dst)
     console.log('[OpenCode Pets] Plugin copied to', dst)
   } catch (err: any) {
